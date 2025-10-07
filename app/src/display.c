@@ -373,7 +373,9 @@ sc_display_update_texture(struct sc_display *display, const AVFrame *frame) {
 enum sc_display_result
 sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
                   enum sc_orientation orientation) {
-    SDL_RenderClear(display->renderer);
+    bool always_ok = SDL_RenderClear(display->renderer);
+    (void) always_ok;
+    assert(always_ok);
 
     if (display->pending.flags) {
         bool ok = sc_display_apply_pending(display);
@@ -418,6 +420,8 @@ sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
         }
     }
 
-    SDL_RenderPresent(display->renderer);
+    always_ok = SDL_RenderPresent(display->renderer);
+    assert(always_ok);
+
     return SC_DISPLAY_RESULT_OK;
 }

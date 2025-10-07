@@ -11,7 +11,10 @@
 
 static void
 sc_screen_otg_render(struct sc_screen_otg *screen) {
-    SDL_RenderClear(screen->renderer);
+    bool always_ok = SDL_RenderClear(screen->renderer);
+    (void) always_ok;
+    assert(always_ok);
+
     if (screen->texture) {
         bool ok =
             SDL_RenderTexture(screen->renderer, screen->texture, NULL, NULL);
@@ -19,7 +22,9 @@ sc_screen_otg_render(struct sc_screen_otg *screen) {
             LOGW("Could not render texture: %s", SDL_GetError());
         }
     }
-    SDL_RenderPresent(screen->renderer);
+
+    always_ok = SDL_RenderPresent(screen->renderer);
+    assert(always_ok);
 }
 
 bool

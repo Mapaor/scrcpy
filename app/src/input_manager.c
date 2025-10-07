@@ -674,7 +674,9 @@ sc_input_manager_process_touch(struct sc_input_manager *im,
 
     int dw;
     int dh;
-    SDL_GetWindowSizeInPixels(im->screen->window, &dw, &dh);
+    bool always_ok = SDL_GetWindowSizeInPixels(im->screen->window, &dw, &dh);
+    (void) always_ok;
+    assert(always_ok);
 
     // SDL touch event coordinates are normalized in the range [0; 1]
     int32_t x = event->x * dw;
