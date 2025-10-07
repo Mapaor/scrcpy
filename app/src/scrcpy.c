@@ -154,9 +154,15 @@ sdl_configure(bool video_playback, bool disable_screensaver) {
     }
 
     if (disable_screensaver) {
-        SDL_DisableScreenSaver();
+        bool ok = SDL_DisableScreenSaver();
+        if (!ok) {
+            LOGW("Could not disable screen saver");
+        }
     } else {
-        SDL_EnableScreenSaver();
+        bool ok = SDL_EnableScreenSaver();
+        if (!ok) {
+            LOGW("Could not enable screen saver");
+        }
     }
 }
 

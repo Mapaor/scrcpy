@@ -56,8 +56,11 @@ sc_display_init(struct sc_display *display, SDL_Window *window,
 #ifdef SC_DISPLAY_FORCE_OPENGL_CORE_PROFILE
         // Persuade macOS to give us something better than OpenGL 2.1.
         // If we create a Core Profile context, we get the best OpenGL version.
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-                            SDL_GL_CONTEXT_PROFILE_CORE);
+        bool ok = SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                                      SDL_GL_CONTEXT_PROFILE_CORE);
+        if (!ok) {
+            LOGW("Could not set a GL Core Profile Context");
+        }
 
         LOGD("Creating OpenGL Core Profile context");
         display->gl_context = SDL_GL_CreateContext(window);
@@ -371,7 +374,9 @@ sc_display_update_texture(struct sc_display *display, const AVFrame *frame) {
 enum sc_display_result
 sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
                   enum sc_orientation orientation) {
-    SDL_RenderClear(display->renderer);
+    bool always_ok = SDL_RenderClear(display->renderer);
+    (void) always_ok;
+    assert(always_ok);
 
     if (display->pending.flags) {
         bool ok = sc_display_apply_pending(display);
@@ -416,6 +421,8 @@ sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
         }
     }
 
-    SDL_RenderPresent(display->renderer);
+    always_ok = SDL_RenderPresent(display->renderer);
+    assert(always_ok);
+
     return SC_DISPLAY_RESULT_OK;
 }

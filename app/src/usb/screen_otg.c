@@ -11,11 +11,20 @@
 
 static void
 sc_screen_otg_render(struct sc_screen_otg *screen) {
-    SDL_RenderClear(screen->renderer);
+    bool always_ok = SDL_RenderClear(screen->renderer);
+    (void) always_ok;
+    assert(always_ok);
+
     if (screen->texture) {
-        SDL_RenderTexture(screen->renderer, screen->texture, NULL, NULL);
+        bool ok =
+            SDL_RenderTexture(screen->renderer, screen->texture, NULL, NULL);
+        if (!ok) {
+            LOGW("Could not render texture: %s", SDL_GetError());
+        }
     }
-    SDL_RenderPresent(screen->renderer);
+
+    always_ok = SDL_RenderPresent(screen->renderer);
+    assert(always_ok);
 }
 
 bool
@@ -59,10 +68,13 @@ sc_screen_otg_init(struct sc_screen_otg *screen,
     SDL_Surface *icon = scrcpy_icon_load();
 
     if (icon) {
-        SDL_SetWindowIcon(screen->window, icon);
+        bool ok = SDL_SetWindowIcon(screen->window, icon);
+        if (!ok) {
+            LOGW("Could not set window icon: %s", SDL_GetError());
+        }
 
-        bool ok =
-            SDL_SetRenderLogicalPresentation(screen->renderer, icon->w, icon->h,
+        ok = SDL_SetRenderLogicalPresentation(screen->renderer, icon->w,
+                                              icon->h,
                                          SDL_LOGICAL_PRESENTATION_LETTERBOX);
         if (!ok) {
             LOGW("Could not set renderer logical size: %s", SDL_GetError());

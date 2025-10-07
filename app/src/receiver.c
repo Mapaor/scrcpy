@@ -54,8 +54,12 @@ task_set_clipboard(void *userdata) {
     if (same) {
         LOGD("Computer clipboard unchanged");
     } else {
-        LOGI("Device clipboard copied");
-        SDL_SetClipboardText(text);
+        bool ok = SDL_SetClipboardText(text);
+        if (ok) {
+            LOGI("Device clipboard copied");
+        } else {
+            LOGE("Could not set clipboard: %s", SDL_GetError());
+        }
     }
 
     free(text);

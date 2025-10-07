@@ -89,8 +89,14 @@ sc_mouse_capture_set_active(struct sc_mouse_capture *mc, bool capture) {
         SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
 
         int x, y, w, h;
-        SDL_GetWindowPosition(mc->window, &x, &y);
-        SDL_GetWindowSize(mc->window, &w, &h);
+        bool always_ok;
+        (void) always_ok;
+
+        always_ok = SDL_GetWindowPosition(mc->window, &x, &y);
+        assert(always_ok);
+
+        always_ok = SDL_GetWindowSize(mc->window, &w, &h);
+        assert(always_ok);
 
         bool outside_window = mouse_x < x || mouse_x >= x + w
                            || mouse_y < y || mouse_y >= y + h;

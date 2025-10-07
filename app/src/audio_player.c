@@ -125,7 +125,14 @@ sc_audio_player_frame_sink_open(struct sc_frame_sink *sink,
         (void) ok; // We don't care if it worked, at least we tried
     }
 
-    SDL_ResumeAudioDevice(ap->device);
+    ok = SDL_ResumeAudioDevice(ap->device);
+    if (!ok) {
+        LOGE("Could not resume audio device: %s", SDL_GetError());
+        SDL_DestroyAudioStream(ap->stream);
+        free(ap->aout_buffer);
+        sc_audio_regulator_destroy(&ap->audioreg);
+        return false;
+    }
 
     return true;
 }
