@@ -6,6 +6,7 @@
 #include <libavutil/pixfmt.h>
 
 #include "util/log.h"
+#include "util/window.h"
 
 static bool
 sc_display_init_novideo_icon(struct sc_display *display,
@@ -373,7 +374,7 @@ sc_display_update_texture(struct sc_display *display, const AVFrame *frame) {
 enum sc_display_result
 sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
                   enum sc_orientation orientation) {
-    SDL_RenderClear(display->renderer);
+    sc_sdl_render_clear(display->renderer);
 
     if (display->pending.flags) {
         bool ok = sc_display_apply_pending(display);
@@ -418,6 +419,6 @@ sc_display_render(struct sc_display *display, const SDL_Rect *geometry,
         }
     }
 
-    SDL_RenderPresent(display->renderer);
+    sc_sdl_render_present(display->renderer);
     return SC_DISPLAY_RESULT_OK;
 }

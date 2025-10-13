@@ -11,6 +11,7 @@
 #include "screen.h"
 #include "shortcut_mod.h"
 #include "util/log.h"
+#include "util/window.h"
 
 void
 sc_input_manager_init(struct sc_input_manager *im,
@@ -672,13 +673,12 @@ sc_input_manager_process_touch(struct sc_input_manager *im,
         return;
     }
 
-    int dw;
-    int dh;
-    SDL_GetWindowSizeInPixels(im->screen->window, &dw, &dh);
+    struct sc_size drawable_size =
+        sc_sdl_get_window_size_in_pixels(im->screen->window);
 
     // SDL touch event coordinates are normalized in the range [0; 1]
-    int32_t x = event->x * dw;
-    int32_t y = event->y * dh;
+    int32_t x = event->x * (int32_t) drawable_size.width;
+    int32_t y = event->y * (int32_t) drawable_size.height;
 
     struct sc_touch_event evt = {
         .position = {

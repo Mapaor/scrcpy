@@ -11,7 +11,7 @@
 
 static void
 sc_screen_otg_render(struct sc_screen_otg *screen) {
-    SDL_RenderClear(screen->renderer);
+    sc_sdl_render_clear(screen->renderer);
     if (screen->texture) {
         bool ok =
             SDL_RenderTexture(screen->renderer, screen->texture, NULL, NULL);
@@ -19,7 +19,7 @@ sc_screen_otg_render(struct sc_screen_otg *screen) {
             LOGW("Could not render texture: %s", SDL_GetError());
         }
     }
-    SDL_RenderPresent(screen->renderer);
+    sc_sdl_render_present(screen->renderer);
 }
 
 bool
@@ -48,7 +48,7 @@ sc_screen_otg_init(struct sc_screen_otg *screen,
     }
 
     screen->window =
-        sc_create_sdl_window(title, x, y, width, height, window_flags);
+        sc_sdl_create_window(title, x, y, width, height, window_flags);
     if (!screen->window) {
         LOGE("Could not create window: %s", SDL_GetError());
         return false;

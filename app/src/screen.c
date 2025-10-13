@@ -9,6 +9,7 @@
 #include "options.h"
 #include "util/log.h"
 #include "util/window.h"
+#include "util/window.h"
 
 #define DISPLAY_MARGINS 96
 
@@ -27,38 +28,12 @@ get_oriented_size(struct sc_size size, enum sc_orientation orientation) {
     return oriented_size;
 }
 
-// get the window size in a struct sc_size
-static struct sc_size
-get_window_size(const struct sc_screen *screen) {
-    int width;
-    int height;
-    SDL_GetWindowSize(screen->window, &width, &height);
-
-    struct sc_size size;
-    size.width = width;
-    size.height = height;
-    return size;
-}
-
-static struct sc_point
-get_window_position(const struct sc_screen *screen) {
-    int x;
-    int y;
-    SDL_GetWindowPosition(screen->window, &x, &y);
-
-    struct sc_point point;
-    point.x = x;
-    point.y = y;
-    return point;
-}
-
 // set the window size to be applied when fullscreen is disabled
-static void
-set_window_size(struct sc_screen *screen, struct sc_size new_size) {
+static inline void
+assert_not_fullscreen(struct sc_screen *screen) {
     assert(!screen->fullscreen);
     assert(!screen->maximized);
     assert(!screen->minimized);
-    SDL_SetWindowSize(screen->window, new_size.width, new_size.height);
 }
 
 // get the preferred display bounds (i.e. the screen bounds with some margins)
@@ -169,13 +144,10 @@ static void
 sc_screen_update_content_rect(struct sc_screen *screen) {
     assert(screen->video);
 
-    int dw;
-    int dh;
-    SDL_GetWindowSizeInPixels(screen->window, &dw, &dh);
-
     struct sc_size content_size = screen->content_size;
     // The drawable size is the window size * the HiDPI scale
-    struct sc_size drawable_size = {dw, dh};
+    struct sc_size drawable_size =
+        sc_sdl_get_window_size_in_pixels(screen->window);
 
     SDL_Rect *rect = &screen->rect;
 
@@ -388,7 +360,7 @@ sc_screen_init(struct sc_screen *screen,
 
     // The window will be positioned and sized on first video frame
     screen->window =
-        sc_create_sdl_window(title, x, y, width, height, window_flags);
+        sc_sdl_create_window(title, x, y, width, height, window_flags);
     if (!screen->window) {
         LOGE("Could not create window: %s", SDL_GetError());
         goto error_destroy_fps_counter;
@@ -496,13 +468,18 @@ sc_screen_show_initial_window(struct sc_screen *screen) {
           ? screen->req.x : (int) SDL_WINDOWPOS_CENTERED;
     int y = screen->req.y != SC_WINDOW_POSITION_UNDEFINED
           ? screen->req.y : (int) SDL_WINDOWPOS_CENTERED;
+    struct sc_point position = {
+        .x = x,
+        .y = y,
+    };
 
     struct sc_size window_size =
         get_initial_optimal_size(screen->content_size, screen->req.width,
                                                        screen->req.height);
 
-    set_window_size(screen, window_size);
-    SDL_SetWindowPosition(screen->window, x, y);
+    assert_not_fullscreen(screen);
+    sc_sdl_set_window_size(screen->window, window_size);
+    sc_sdl_set_window_position(screen->window, position);
 
     if (screen->req.fullscreen) {
         sc_screen_toggle_fullscreen(screen);
@@ -512,13 +489,13 @@ sc_screen_show_initial_window(struct sc_screen *screen) {
         sc_fps_counter_start(&screen->fps_counter);
     }
 
-    SDL_ShowWindow(screen->window);
+    sc_sdl_show_window(screen->window);
     sc_screen_update_content_rect(screen);
 }
 
 void
 sc_screen_hide_window(struct sc_screen *screen) {
-    SDL_HideWindow(screen->window);
+    sc_sdl_hide_window(screen->window);
 }
 
 void
@@ -548,7 +525,7 @@ resize_for_content(struct sc_screen *screen, struct sc_size old_content_size,
                    struct sc_size new_content_size) {
     assert(screen->video);
 
-    struct sc_size window_size = get_window_size(screen);
+    struct sc_size window_size = sc_sdl_get_window_size(screen->window);
     struct sc_size target_size = {
         .width = (uint32_t) window_size.width * new_content_size.width
                 / old_content_size.width,
@@ -556,7 +533,8 @@ resize_for_content(struct sc_screen *screen, struct sc_size old_content_size,
                 / old_content_size.height,
     };
     target_size = get_optimal_size(target_size, new_content_size, true);
-    set_window_size(screen, target_size);
+    assert_not_fullscreen(screen);
+    sc_sdl_set_window_size(screen->window, target_size);
 }
 
 static void
@@ -752,8 +730,8 @@ sc_screen_resize_to_fit(struct sc_screen *screen) {
         return;
     }
 
-    struct sc_point point = get_window_position(screen);
-    struct sc_size window_size = get_window_size(screen);
+    struct sc_point point = sc_sdl_get_window_position(screen->window);
+    struct sc_size window_size = sc_sdl_get_window_size(screen->window);
 
     struct sc_size optimal_size =
         get_optimal_size(window_size, screen->content_size, false);
@@ -761,11 +739,14 @@ sc_screen_resize_to_fit(struct sc_screen *screen) {
     // Center the window related to the device screen
     assert(optimal_size.width <= window_size.width);
     assert(optimal_size.height <= window_size.height);
-    uint32_t new_x = point.x + (window_size.width - optimal_size.width) / 2;
-    uint32_t new_y = point.y + (window_size.height - optimal_size.height) / 2;
 
-    SDL_SetWindowSize(screen->window, optimal_size.width, optimal_size.height);
-    SDL_SetWindowPosition(screen->window, new_x, new_y);
+    struct sc_point new_position = {
+        .x = point.x + (window_size.width - optimal_size.width) / 2,
+        .y = point.y + (window_size.height - optimal_size.height) / 2,
+    };
+
+    sc_sdl_set_window_size(screen->window, optimal_size);
+    sc_sdl_set_window_position(screen->window, new_position);
     LOGD("Resized to optimal size: %ux%u", optimal_size.width,
                                            optimal_size.height);
 }
@@ -779,12 +760,12 @@ sc_screen_resize_to_pixel_perfect(struct sc_screen *screen) {
     }
 
     if (screen->maximized) {
-        SDL_RestoreWindow(screen->window);
+        sc_sdl_restore_window(screen->window);
         screen->maximized = false;
     }
 
     struct sc_size content_size = screen->content_size;
-    SDL_SetWindowSize(screen->window, content_size.width, content_size.height);
+    sc_sdl_set_window_size(screen->window, content_size);
     LOGD("Resized to pixel-perfect: %ux%u", content_size.width,
                                             content_size.height);
 }
@@ -914,9 +895,15 @@ sc_screen_convert_window_to_frame_coords(struct sc_screen *screen,
 void
 sc_screen_hidpi_scale_coords(struct sc_screen *screen, int32_t *x, int32_t *y) {
     // take the HiDPI scaling (dw/ww and dh/wh) into account
-    int ww, wh, dw, dh;
-    SDL_GetWindowSize(screen->window, &ww, &wh);
-    SDL_GetWindowSizeInPixels(screen->window, &dw, &dh);
+
+    struct sc_size window_size = sc_sdl_get_window_size(screen->window);
+    int64_t ww = window_size.width;
+    int64_t wh = window_size.height;
+
+    struct sc_size drawable_size =
+        sc_sdl_get_window_size_in_pixels(screen->window);
+    int64_t dw = drawable_size.width;
+    int64_t dh = drawable_size.height;
 
     // scale for HiDPI (64 bits for intermediate multiplications)
     *x = (int64_t) *x * dw / ww;
