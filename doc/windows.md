@@ -46,6 +46,19 @@ scoop install adb    # if you don't have it yet
 
 _See [build.md](build.md) to build and install the app manually._
 
+## Add to PATH
+
+First we need to locate the executable.
+
+#### If installed with wget
+(Win+R) "%USERPROFILE%\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe" and then double click the "scrcpy-win64-v3.3.3" folder (or the corresponding version you have), you should see a `scrcpy.exe` file inside. 
+
+If you don't plan to execute it with arguments you could just create a Desktop shortcut for the executable. If you want to use the CLI, you can add the executable to (user or system) PATH manually via environment variables or add it to user PATH via CLI with:
+
+```bat
+setx PATH "%PATH%;%USERPROFILE%\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe\scrcpy-win64-v3.3.3"
+```
+_Don't forget to use the actual numbering from the version you are installing (v3.3.3 in this example)._
 
 ## Run
 
